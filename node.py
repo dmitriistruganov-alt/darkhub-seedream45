@@ -1,6 +1,7 @@
 """
-DarkHubFreepikStudio — ComfyUI node for Seedream 4.5 Edit via kie.ai API.
-Replaces the missing darkhub-seedream45 node pack.
+DarkHubFreepikStudio — ComfyUI node for Seedream 4.5 Edit via kie.ai API,
+with optional support for any OpenAI-compatible image generation API
+(/v1/images/generations).
 """
 import os, io, time, base64, json, logging
 import requests
@@ -28,6 +29,19 @@ RATIO_MAP = {
     "Classic: 4:3": "4:3",
     "Ultra Wide: 21:9": "21:9",
 }
+
+# OpenAI-compatible size mapping from aspect ratio
+OPENAI_SIZE_MAP = {
+    "Square: 1:1": "1024x1024",
+    "Widescreen: 16:9": "1792x1024",
+    "Portrait: 2:3": "1024x1536",
+    "Landscape: 3:2": "1536x1024",
+    "Tall: 9:16": "1024x1792",
+    "Traditional: 3:4": "1024x1365",
+    "Classic: 4:3": "1365x1024",
+    "Ultra Wide: 21:9": "1792x768",
+}
+
 MODELS = [
     "Seedream v4.5 Edit",
     "Seedream v4.5 T2I",
@@ -38,6 +52,10 @@ MODEL_MAP = {
     "Seedream v4.5 T2I":   "seedream/4.5",
     "Seedream v5.0 Lite":  "seedream/5.0-lite",
 }
+
+# OpenAI-compatible quality options
+OPENAI_QUALITY = ["auto", "standard", "hd"]
+OPENAI_STYLE = ["vivid", "natural"]
 
 
 def _tensor_to_b64(tensor: torch.Tensor) -> str:
@@ -66,8 +84,51 @@ def _url_to_tensor(url: str) -> torch.Tensor:
     return torch.from_numpy(arr).unsqueeze(0)
 
 
+def _generate_openai(base_url, api_key, model_name, prompt, aspect_ratio,
+                     num_images, quality, style_name, seed):
+    """Call any OpenAI-compatible /v1/images/generations endpoint."""
+    base_url = base_url.rstrip("/")
+    url = f"{base_url}/v1/images/generations"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    size = OPENAI_SIZE_MAP.get(aspect_ratio, "1024x1024")
+    body = {
+        "model": model_name,
+        "prompt": prompt,
+        "n": num_images,
+        "size": size,
+        "response_format": "b64_json",
+    }
+    if quality != "auto":
+        body["quality"] = quality
+    if style_name:
+        body["style"] = style_name
+    if seed:
+        body["seed"] = seed
+
+    log.info(f"[darkHUB] OpenAI API → {url} model={model_name} size={size}")
+    r = requests.post(url, headers=headers, json=body, timeout=120)
+    r.raise_for_status()
+    resp = r.json()
+
+    tensors = []
+    urls = []
+    for item in resp.get("data", []):
+        if item.get("b64_json"):
+            tensors.append(_b64_to_tensor(item["b64_json"]))
+            urls.append("")
+        elif item.get("url"):
+            tensors.append(_url_to_tensor(item["url"]))
+            urls.append(item["url"])
+
+    return tensors, urls, resp
+
+
 class DarkHubFreepikStudio:
-    """Seedream 4.5 image generation/editing via kie.ai API."""
+    """Seedream 4.5 image generation/editing via kie.ai API,
+    or any OpenAI-compatible image generation API."""
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -85,6 +146,13 @@ class DarkHubFreepikStudio:
                 "num_images":      ("INT",   {"default": 2, "min": 1, "max": 4}),
                 "output_prefix":   ("STRING", {"default": "darkhub_seedream45"}),
                 "api_key":         ("STRING", {"default": ""}),
+                # OpenAI-compatible provider settings (leave empty to use kie.ai)
+                "openai_api_base": ("STRING", {"default": "", "multiline": False,
+                                               "placeholder": "https://api.openai.com  (empty = use kie.ai)"}),
+                "openai_model":    ("STRING", {"default": "", "multiline": False,
+                                               "placeholder": "dall-e-3 / gpt-image-1 / ..."}),
+                "openai_quality":  (OPENAI_QUALITY, {"default": "auto"}),
+                "openai_style":    (["(none)"] + OPENAI_STYLE, {"default": "(none)"}),
             },
             "optional": {
                 "reference_image_1": ("IMAGE",),
@@ -102,11 +170,47 @@ class DarkHubFreepikStudio:
 
     def generate(self, model, prompt, negative_prompt, style, aspect_ratio, seed,
                  control_after_generate, nsfw, timeout, num_images, output_prefix, api_key,
+                 openai_api_base, openai_model, openai_quality, openai_style,
                  reference_image_1=None, reference_image_2=None,
                  reference_image_3=None, reference_image_4=None,
                  reference_image_5=None):
 
         key = api_key.strip() or os.environ.get("KIE_API_KEY", "44f4c847e4b8a123441b0891322acb9b")
+        effective_seed = seed if control_after_generate == "fixed" else None
+
+        # Route to OpenAI-compatible API if base URL is provided
+        if openai_api_base.strip():
+            oai_key = api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
+            oai_model = openai_model.strip() or "dall-e-3"
+            oai_style = openai_style if openai_style != "(none)" else ""
+            try:
+                tensors, urls, resp = _generate_openai(
+                    base_url=openai_api_base.strip(),
+                    api_key=oai_key,
+                    model_name=oai_model,
+                    prompt=prompt,
+                    aspect_ratio=aspect_ratio,
+                    num_images=num_images,
+                    quality=openai_quality,
+                    style_name=oai_style,
+                    seed=effective_seed,
+                )
+            except Exception as e:
+                log.error(f"[darkHUB] OpenAI API error: {e}")
+                blank = torch.zeros(1, 512, 512, 3)
+                return (blank, "error", str(e), "[]", "[]", "{}", "", str(e))
+
+            if not tensors:
+                blank = torch.zeros(1, 512, 512, 3)
+                return (blank, "openai", "no_images", "[]", "[]", json.dumps(resp), "", "No images returned")
+
+            out = torch.cat(tensors, dim=0)
+            summary = f"Generated {len(tensors)} image(s) via {oai_model} [{OPENAI_SIZE_MAP.get(aspect_ratio, '1024x1024')}]"
+            log.info(f"[darkHUB] OpenAI done: {len(tensors)} images")
+            return (out, "openai", "COMPLETED", json.dumps(urls), json.dumps(urls),
+                    json.dumps(resp), "", summary)
+
+        # --- kie.ai backend (default) ---
         headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
         api_model = MODEL_MAP.get(model, SEEDREAM_MODEL)
         ratio = RATIO_MAP.get(aspect_ratio, "3:4")
@@ -126,7 +230,7 @@ class DarkHubFreepikStudio:
                 "negative_prompt": negative_prompt,
                 "aspect_ratio": ratio,
                 "nsfw_checker": nsfw,
-                "seed": seed if control_after_generate == "fixed" else None,
+                "seed": effective_seed,
             }
         }
         if style:
@@ -136,12 +240,10 @@ class DarkHubFreepikStudio:
         if num_images > 1:
             body["input"]["n"] = num_images
 
-        # Remove None values
         body["input"] = {k: v for k, v in body["input"].items() if v is not None}
 
         log.info(f"[darkHUB] Calling kie.ai model={api_model} ratio={ratio} refs={len(ref_images)}")
 
-        # Submit task
         try:
             r = requests.post(f"{KIE_BASE}/api/v1/jobs/createTask",
                               headers=headers, json=body, timeout=30)
@@ -161,7 +263,6 @@ class DarkHubFreepikStudio:
         task_id = resp["data"]["taskId"]
         log.info(f"[darkHUB] Task created: {task_id}")
 
-        # Poll for result
         poll_url = f"{KIE_BASE}/api/v1/jobs/getTaskDetail?taskId={task_id}"
         status = "pending"
         result_data = {}
@@ -184,7 +285,6 @@ class DarkHubFreepikStudio:
                 log.warning(f"[darkHUB] Poll error: {e}")
                 continue
 
-        # Extract image URLs
         image_urls = (result_data.get("output", {}).get("images") or
                       result_data.get("imageUrls") or
                       result_data.get("image_urls") or [])
@@ -198,10 +298,9 @@ class DarkHubFreepikStudio:
             blank = torch.zeros(1, 512, 512, 3)
             return (blank, task_id, status, "[]", "[]", json.dumps(result_data), "", "No images")
 
-        # Download images
         tensors = []
         saved = []
-        for i, url in enumerate(image_urls):
+        for url in image_urls:
             try:
                 t = _url_to_tensor(url)
                 tensors.append(t)
