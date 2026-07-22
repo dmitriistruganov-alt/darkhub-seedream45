@@ -11,7 +11,7 @@
 
 ---
 
-## Три бизнес-проекта
+## Четыре бизнес-проекта
 
 ### 1. Контент-ферма
 Автоматическая массовая генерация AI-изображений.
@@ -38,6 +38,14 @@
 - Контент: Claude API генерирует title (200 chars) + bullets + A+ content
 - Публикация: Amazon SP-API (MWS мёртв с 31.03.2024 — только SP-API!)
 - Мониторинг: Feedvisor / SellerAI
+
+### 4. TikTok Shop — Social Commerce
+Изображения + короткие видео → TikTok Shop листинги автоматически.
+- Видео: ComfyUI AnimateDiff / Kling AI для product videos
+- Контент: Claude API генерирует описание + хэштеги под TikTok алгоритм
+- Фулфилмент: Gelato API (тот же, что Etsy — PrintOnDemand)
+- Публикация: TikTok Shop API (Content API + Product API)
+- Быстрее viral loop: контент-ферма → TikTok → продажи за часы, не дни
 
 ---
 
@@ -77,11 +85,40 @@
 
 ---
 
+## Ключевые инструменты оркестрации
+
+### Buzz (Jack Dorsey / Block)
+- Открытый workspace: Slack + GitHub в одном, протокол Nostr
+- AI агенты — полноправные члены команды (не боты, а коллеги)
+- Каналы: #content-farm #etsy #amazon #tiktok #dev #alerts #budget
+- Apache 2.0, self-hosted: `github.com/buzzapp/buzz`
+
+### Claudexor (AI Orchestrator)
+- Мульти-агентная оркестрация Claude Code / Codex
+- Ротация квот между API ключами (не тратим один ключ)
+- Best-of-N: запускает промпт на N провайдерах, берёт лучший
+- Budget caps: `--max-usd 5` — жёсткий лимит расходов за сессию
+- MCP server mode — подключается к любому MCP-совместимому клиенту
+- `github.com/razzant/claudexor`
+
+---
+
 ## Переменные окружения
 
 ```bash
-KIE_API_KEY=       # kie.ai (Seedream)
-OPENAI_API_KEY=    # OpenAI или любой совместимый провайдер
+KIE_API_KEY=           # kie.ai (Seedream)
+OPENAI_API_KEY=        # OpenAI или любой совместимый провайдер
+FAL_KEY=               # FAL.ai (FLUX Schnell — самый быстрый)
+GROQ_API_KEY=          # Groq (500 tok/s, бесплатно)
+ANTHROPIC_API_KEY=     # Claude API (листинги Amazon/TikTok)
+LANGFUSE_SECRET_KEY=   # Трекинг качества промптов
+HELICONE_API_KEY=      # Прокси для мониторинга токенов/затрат
+B2_KEY_ID=             # Backblaze B2
+B2_APP_KEY=            # Backblaze B2
+ETSY_API_KEY=          # Etsy API v3
+TIKTOK_SHOP_API_KEY=   # TikTok Shop API
+AMAZON_SP_API_KEY=     # Amazon SP-API (не MWS!)
+GELATO_API_KEY=        # Gelato (POD фулфилмент)
 ```
 
 ---
