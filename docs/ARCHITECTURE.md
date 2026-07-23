@@ -85,8 +85,11 @@
 ╔═══════════════════════════════════════════════════╗
 ║  LAYER 5 — LLM / PROMPT ENGINE                    ║
 ║                                                   ║
-║  • Groq (500 tok/s, бесплатно) — генерация        ║
-║    промптов, SEO теги, описания                   ║
+║  • Groq (500 tok/s, бесплатно) — промпты, SEO     ║
+║  • Cerebras (ultra-fast, бесплатно) — fallback    ║
+║  • Poolside Laguna S-2.1 (БЕСПЛАТНО) — coding    ║
+║    118B MoE/8B активных, SWE-Bench 78.5%          ║
+║    inference.poolside.ai/v1 (OpenAI-compat.)      ║
 ║  • Ollama (локально) — оффлайн fallback           ║
 ║  • Claude API (claude-sonnet-5) — листинги        ║
 ║    Amazon A+, TikTok описания, сложный контент    ║

@@ -93,13 +93,15 @@ Open-source workspace, AI-агенты как члены команды.
 
 ## OpenAI-совместимые провайдеры
 
-| Провайдер | URL для openai_api_base | Модель |
-|-----------|------------------------|--------|
-| OpenAI | `https://api.openai.com` | `dall-e-3` / `gpt-image-1` |
-| FAL.ai | `https://fal.run` | `fal-ai/flux/schnell` |
-| Together AI | `https://api.together.xyz` | FLUX, SDXL |
-| Replicate | `https://api.replicate.com` | любая |
-| Ollama | `http://localhost:11434` | локальная |
+| Провайдер | URL для openai_api_base | Модель | Цена |
+|-----------|------------------------|--------|------|
+| OpenAI | `https://api.openai.com` | `dall-e-3` / `gpt-image-1` | платно |
+| FAL.ai | `https://fal.run` | `fal-ai/flux/schnell` | $0.01/img |
+| Together AI | `https://api.together.xyz` | FLUX, SDXL | платно |
+| Replicate | `https://api.replicate.com` | любая | платно |
+| Ollama | `http://localhost:11434` | локальная | бесплатно |
+| **Poolside** | `https://inference.poolside.ai/v1` | `poolside/laguna-s-2.1` | **БЕСПЛАТНО** |
+| OpenRouter | `https://openrouter.ai/api/v1` | любая (14 ключей в ротации) | по модели |
 
 ---
 
@@ -112,6 +114,7 @@ STABILITY_API_KEY=     # Stability AI
 OPENAI_API_KEY=        # OpenAI
 ANTHROPIC_API_KEY=     # Claude API
 GROQ_API_KEY=          # Groq (промпты, бесплатно)
+POOLSIDE_API_KEY=      # Poolside Laguna S/XS-2.1 — coding модели, БЕСПЛАТНО (добавлен 23.07)
 B2_KEY_ID=             # Backblaze B2
 B2_APP_KEY=
 B2_BUCKET=
@@ -127,6 +130,7 @@ LANGFUSE_PUBLIC_KEY=
 HELICONE_API_KEY=
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
+# Проверять EXISTS/MISSING — НИКОГДА не печатать значения
 ```
 
 ---
@@ -139,3 +143,29 @@ QDRANT_URL=http://localhost:6333
 - Stability AI 3.5 — самый дешёвый ($0.003/img)
 - Ideogram — единственный надёжный для текста на изображении (90-95%)
 - OpenHands порт :3002 (чтобы не конфликтовать с Buzz :3000, Langfuse :3001)
+- Poolside БЕСПЛАТНО: inference.poolside.ai/v1, модели laguna-s-2.1 / laguna-xs-2.1
+- CPU потолок: 70%. Перед тяжёлыми операциями — Get-WmiObject Win32_Processor
+- Temporal контейнер: держать ВЫКЛЮЧЕННЫМ (причина перегрева)
+- CHATTER_DISABLED.flag на Aeza: НЕ трогать без явной команды Димы
+
+---
+
+## Задачи для локального Claude Code (подхвати при следующем запуске)
+
+Статус проверки: 23.07.2026. Система здорова.
+
+| # | Задача | Файл/место | Приоритет |
+|---|--------|-----------|-----------|
+| 1 | Починить git-backup в PM2 (статус stopped → online) | `pm2 resurrect && pm2 save` | 🔴 ВЫСОКИЙ |
+| 2 | Добавить Poolside в free_brain.py (маршрут "coding") | `agent_office/core/free_brain.py` | 🟡 Средний |
+| 3 | Добавить Poolside в ALL_WORKERS пул | `agent_office/core/config.py` | 🟡 Средний |
+| 4 | Проверить OpenHuman после смены inference_url на anthropic | `AppData\Local\OpenHuman\config.toml` | 🟡 Средний |
+| 5 | /reload-plugins в Claude Code или новая сессия для активации claude-security | сессия Claude Code | 🟢 Низкий |
+| 6 | Добавить Laguna XS-2.1 в free_brain (истекает 28.07 — ускорить!) | `free_brain.py` | 🟡 Средний |
+| 7 | Проверить Scheduled Tasks: HealTick/DeepCheck/SashaMemoryFeed/TelegramAgentBot | Task Scheduler | 🟡 Средний |
+| 8 | Obsidian-mind семантический поиск — спросить Диму нужно ли | — | 🟢 Низкий |
+
+**Не трогать без команды:**
+- CHATTER_DISABLED на Aeza (91.186.216.97)
+- Temporal контейнер (держать OFF)
+- OpenModel.ai ключи (баланс $0, мёртвый провайдер)
