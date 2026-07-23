@@ -175,7 +175,7 @@ class DarkHubFreepikStudio:
                  reference_image_3=None, reference_image_4=None,
                  reference_image_5=None):
 
-        key = api_key.strip() or os.environ.get("KIE_API_KEY", "44f4c847e4b8a123441b0891322acb9b")
+        key = api_key.strip() or os.environ.get("KIE_API_KEY", "")
         effective_seed = seed if control_after_generate == "fixed" else None
 
         # Route to OpenAI-compatible API if base URL is provided
