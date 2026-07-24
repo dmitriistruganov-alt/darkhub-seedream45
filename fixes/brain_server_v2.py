@@ -15,8 +15,17 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', 'agent_office', '.env'))
-load_dotenv()
+# Load .env from multiple candidate locations (covers both dev and deployed scenarios)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _env_path in [
+    os.path.join(_HERE, '.env'),                                   # agent_office/.env (deployed)
+    os.path.join(_HERE, '..', '.env'),                             # repo-root or parent/.env
+    os.path.join(os.path.expanduser('~'), 'agent_office', '.env'), # %USERPROFILE%\agent_office\.env
+    os.path.join('/opt/sasha-core', '.env'),                       # Aeza VPS
+]:
+    if os.path.exists(_env_path):
+        load_dotenv(_env_path)
+load_dotenv()  # also load from CWD/.env if present
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [brain] %(message)s')
 log = logging.getLogger("brain_v2")
@@ -321,7 +330,16 @@ def route_flowise(flow_id: str = "", question: str = "", **kw) -> dict:
 
 # ─── Memory Routes ────────────────────────────────────────────────────────────
 def _mem_file() -> str:
-    return os.path.join(os.path.dirname(__file__), '..', '..', 'agent_office', 'memory.json')
+    # Try to find memory.json in expected locations
+    candidates = [
+        os.path.join(_HERE, 'memory.json'),                                       # agent_office/memory.json
+        os.path.join(os.path.expanduser('~'), 'agent_office', 'memory.json'),     # %USERPROFILE%\agent_office\memory.json
+        os.path.join(_HERE, '..', 'memory.json'),                                 # parent dir
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return candidates[1]  # default: %USERPROFILE%\agent_office\memory.json
 
 
 def _mem_load() -> dict:
