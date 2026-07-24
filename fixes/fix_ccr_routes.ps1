@@ -33,20 +33,23 @@ OK "openrouter провайдер найден (ключ: $($orProvider.api_key.
 
 # Установить все маршруты на OpenRouter бесплатные модели
 # Используем модели уже прописанные в openrouter.models[] в конфиге
-$cfg.Router.default    = "openrouter,meta-llama/llama-3.3-70b-instruct:free"
-$cfg.Router.background = "openrouter,meta-llama/llama-3.3-70b-instruct:free"
-$cfg.Router.longContext = "openrouter,meta-llama/llama-3.1-405b:free"
+$cfg.Router.default    = "openrouter,nvidia/nemotron-3-ultra-550b-a55b:free"
+$cfg.Router.background = "openrouter,google/gemma-4-31b-it:free"
+$cfg.Router.longContext = "openrouter,nvidia/nemotron-3-ultra-550b-a55b:free"
 $cfg.Router.think      = "openrouter,deepseek/deepseek-r1:free"
 
-OK "default    → openrouter,meta-llama/llama-3.3-70b-instruct:free"
-OK "background → openrouter,meta-llama/llama-3.3-70b-instruct:free"
-OK "longContext → openrouter,meta-llama/llama-3.1-405b:free  (128k+ ctx)"
+OK "default    → openrouter,nvidia/nemotron-3-ultra-550b-a55b:free"
+OK "background → openrouter,google/gemma-4-31b-it:free"
+OK "longContext → openrouter,nvidia/nemotron-3-ultra-550b-a55b:free (128k ctx)"
 OK "think      → openrouter,deepseek/deepseek-r1:free"
 
 # Убедиться что нужные модели есть в списке openrouter.models
 $neededModels = @(
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "meta-llama/llama-3.1-405b:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "openai/gpt-oss-20b:free",
     "deepseek/deepseek-r1:free"
 )
 $existingModels = @($orProvider.models)
@@ -72,7 +75,7 @@ $cfg | ConvertTo-Json -Depth 10 | Set-Content $CCR_CONFIG -Encoding UTF8
 OK "Конфиг сохранён"
 
 SEC "ТЕСТ OPENROUTER API"
-$body = '{"model":"meta-llama/llama-3.3-70b-instruct:free","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
+$body = '{"model":"nvidia/nemotron-3-ultra-550b-a55b:free","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
 try {
     $resp = Invoke-RestMethod `
         -Uri "https://openrouter.ai/api/v1/chat/completions" `
