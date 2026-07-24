@@ -42,7 +42,13 @@ if (-not $DryRun) {
 } else { WARN "DryRun — пропускаем git pull" }
 
 # ─── БЛОК 2: CLAUDE CODE ───────────────────────────────────────────────────────
-HEADER "БЛОК 2: Починить Claude Code"
+HEADER "БЛОК 2: Починить Claude Code + CCR порт"
+LOG "Исправляем порт claude-code-router (ccr) ..."
+if (-not $DryRun) {
+    & "$Fixes\fix_ccr_port.ps1"
+    $steps_ok += "CCR port fix"
+} else { WARN "DryRun — пропускаем fix_ccr_port" }
+
 LOG "Запускаем fix_claude_settings.ps1 ..."
 if (-not $DryRun) {
     & "$Fixes\fix_claude_settings.ps1"
