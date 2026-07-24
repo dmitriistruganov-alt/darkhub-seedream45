@@ -71,8 +71,11 @@ if ($added.Count -gt 0) {
     OK "Добавлены в openrouter.models: $($added -join ', ')"
 }
 
-$cfg | ConvertTo-Json -Depth 10 | Set-Content $CCR_CONFIG -Encoding UTF8
-OK "Конфиг сохранён"
+# PS5 bug: single-element arrays serialize as scalars. Fix transformer explicitly.
+$json = $cfg | ConvertTo-Json -Depth 10
+$json = $json -replace '"use"\s*:\s*"openrouter"', '"use": ["openrouter"]'
+$json | Set-Content $CCR_CONFIG -Encoding UTF8
+OK "Конфиг сохранён (transformer массив защищён)"
 
 SEC "ТЕСТ OPENROUTER API"
 $body = '{"model":"nvidia/nemotron-3-ultra-550b-a55b:free","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
