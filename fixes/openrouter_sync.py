@@ -13,7 +13,16 @@ import os, sys, re, json, requests, subprocess
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent.parent.parent / "agent_office" / ".env")
+for _env in [
+    Path.home() / "agent_office" / ".env",
+    Path("/opt/sasha-core/.env"),
+    Path(__file__).parent.parent.parent / "agent_office" / ".env",
+    Path(__file__).parent.parent / ".env",
+    Path(".env"),
+]:
+    if _env.exists():
+        load_dotenv(_env)
+        break
 load_dotenv()
 
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")

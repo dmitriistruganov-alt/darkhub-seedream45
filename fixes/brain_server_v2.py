@@ -83,7 +83,7 @@ FREE_POOL = [
 CODING_POOL = [
     ("poolside-laguna-s",       "poolside/laguna-s-2.1",                 "https://inference.poolside.ai/v1",   "POOLSIDE_API_KEY"),
     ("poolside-laguna-xs",      "poolside/laguna-xs-2.1",                "https://inference.poolside.ai/v1",   "POOLSIDE_API_KEY"),
-    ("cohere-code",             "cohere/north-mini-code:free",           "https://openrouter.ai/api/v1",       "OPENROUTER_API_KEY"),
+    ("llama-4-maverick",        "meta-llama/llama-4-maverick:free",      "https://openrouter.ai/api/v1",       "OPENROUTER_API_KEY"),
     ("nvidia-nemotron-super",   "nvidia/nemotron-3-super-120b-a12b:free","https://openrouter.ai/api/v1",       "OPENROUTER_API_KEY"),
 ]
 

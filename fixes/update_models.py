@@ -44,7 +44,9 @@ POOLSIDE_DIRECT = {
 def find_agent_office() -> Path | None:
     """Locate agent_office directory relative to script or cwd."""
     candidates = [
-        Path(__file__).parent.parent.parent / "agent_office",
+        Path.home() / "agent_office",                            # C:\Users\18186\agent_office (Windows)
+        Path("/opt/sasha-core/agent_office"),                    # Aeza VPS
+        Path(__file__).parent.parent.parent / "agent_office",   # sibling of repo
         Path.cwd() / "agent_office",
         Path.cwd().parent / "agent_office",
     ]

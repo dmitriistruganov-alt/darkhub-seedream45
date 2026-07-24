@@ -17,11 +17,11 @@ function SEC($t)  { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
 
 # Рабочие бесплатные модели OpenRouter (проверено 22.07.2026)
 $FREE_MODELS_OR = @(
-    "nvidia/nemotron-ultra-550b-a55b:free",
-    "nvidia/nemotron-super-49b-v1:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
     "meta-llama/llama-4-maverick:free",
-    "google/gemma-3-27b-it:free",
-    "poolside/laguna-m:free"
+    "google/gemma-4-31b-it:free",
+    "poolside/laguna-m.1:free"
 )
 $DEFAULT_FREE_MODEL = $FREE_MODELS_OR[0]   # nvidia nemotron ultra — самая мощная бесплатная
 

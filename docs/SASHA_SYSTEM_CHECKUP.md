@@ -237,27 +237,35 @@ PM2:  pm2 start fixes/telegram_bot.py --name tg-agent-bot --interpreter python
 
 ## Деплой всех исправлений (24.07.2026)
 
+### ОДИН СКРИПТ (рекомендуется):
+```powershell
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\one_click_fix.ps1
+```
+
+### Пошагово если что-то пошло не так:
 ```powershell
 # Шаг 1: Синхронизировать репо
 git pull origin claude/codex-openai-api-models-x11l8d
 
 # Шаг 2: Починить Claude Code если падает на qwen3
 .\fixes\fix_claude_settings.ps1
+.\fixes\fix_claude_env.ps1
 
 # Шаг 3: Деплой brain_server_v2 + обновление моделей
 .\fixes\deploy.ps1
 
-# Шаг 4: Запустить health monitor
-pm2 start fixes/health_monitor.py --name health-monitor --interpreter python
-
-# Шаг 5: Запустить Telegram бот (нужен TELEGRAM_BOT_TOKEN в .env)
-pm2 start fixes/telegram_bot.py --name tg-agent-bot --interpreter python
-
-# Шаг 6: Проверить модели
+# Шаг 4: Проверить модели
 python fixes/openrouter_sync.py --dry-run
 
-# Шаг 7: Сохранить PM2 конфиг
+# Шаг 5: Настроить автозапуск
+.\fixes\setup_windows_startup.ps1
+
+# Шаг 6: Сохранить PM2 конфиг
 pm2 save
+
+# Шаг 7: Финальная проверка
+.\fixes\full_status.ps1
 ```
 
 ---

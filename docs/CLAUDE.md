@@ -211,6 +211,7 @@ BRAIN_PORT=9999
 | `deploy.ps1` | Полный деплой (11 шагов) | `.\fixes\deploy.ps1` |
 | `pm2_resurrect.ps1` | Поднять все PM2 процессы | `.\fixes\pm2_resurrect.ps1` |
 | `full_status.ps1` | Полная проверка системы | `.\fixes\full_status.ps1` |
+| `one_click_fix.ps1` | **ОДИН СКРИПТ восстанавливает всё** | `.\fixes\one_click_fix.ps1` |
 | `fix_claude_settings.ps1` | **Починить Claude Code** (smart: Direct/OR/no-key) | `.\fixes\fix_claude_settings.ps1` |
 | `fix_claude_env.ps1` | Убрать ANTHROPIC_BASE_URL из системы | `.\fixes\fix_claude_env.ps1` |
 | `fix_claude_nuclear.ps1` | Ядерная чистка всех Claude конфигов | `.\fixes\fix_claude_nuclear.ps1` |
@@ -254,15 +255,22 @@ Error from provider(openrouter,qwen/qwen3-235b-a22b:free: 404): This model is un
 ```
 qwen3:free стал платным. Claude Code каскадно падает: Fable5→Sonnet5→Haiku4.5 — все через OpenRouter.
 
-**Быстрый фикс (PowerShell, одна строка):**
+**Один скрипт исправляет всё:**
 ```powershell
-# Вариант А: Anthropic Direct (если есть sk-ant- ключ)
-.\fixes\fix_claude_env.ps1     # убрать ANTHROPIC_BASE_URL
-.\fixes\fix_claude_settings.ps1  # smart-switch: OR→Anthropic или сменить модель
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\one_click_fix.ps1
+```
 
-# Вариант Б: Если только sk-or- ключ (остаёмся на OpenRouter)
-$f="$env:USERPROFILE\.claude\settings.json"; $j=Get-Content $f|ConvertFrom-Json; $j.model="nvidia/nemotron-ultra-550b-a55b:free"; $j|ConvertTo-Json -Depth 20|Set-Content $f -Encoding UTF8
+**Только Claude Code (если нет времени на полный деплой):**
+```powershell
+.\fixes\fix_claude_settings.ps1
+.\fixes\fix_claude_env.ps1
 # Перезапустить Claude Code
+```
+
+**Ручной фикс модели (PowerShell, одна строка):**
+```powershell
+$f="$env:USERPROFILE\.claude\settings.json"; $j=Get-Content $f|ConvertFrom-Json; $j.model="nvidia/nemotron-3-ultra-550b-a55b:free"; $j|ConvertTo-Json -Depth 20|Set-Content $f -Encoding UTF8
 ```
 
 **Что делает fix_claude_settings.ps1:**
@@ -292,10 +300,11 @@ $f="$env:USERPROFILE\.claude\settings.json"; $j=Get-Content $f|ConvertFrom-Json;
 | 14 | full_status.ps1 | ✅ Готово | `.\fixes\full_status.ps1` |
 | 15 | pm2_resurrect.ps1 | ✅ Готово | `.\fixes\pm2_resurrect.ps1` |
 | 16 | test_brain.py (60 тестов) | ✅ Готово | `python fixes/test_brain.py` |
-| 17 | Починить git-backup PM2 | ⏳ Локально | `pm2 restart git-backup && pm2 save` |
-| 18 | OpenHuman inference_url | ⏳ Локально | `AppData\Local\OpenHuman\config.toml` |
-| 19 | CLAUDE_API_KEY GitHub Secret | ⏳ Локально | Settings → Secrets |
-| 20 | Laguna XS-2.1 expires 28.07 | ⚠️ Срочно! | обновить POOLSIDE_API_KEY до 28.07 |
+| 17 | one_click_fix.ps1 | ✅ Готово | `.\fixes\one_click_fix.ps1` |
+| 18 | Починить git-backup PM2 | ⏳ Локально | `pm2 restart git-backup && pm2 save` |
+| 19 | OpenHuman inference_url | ⏳ Локально | `AppData\Local\OpenHuman\config.toml` |
+| 20 | CLAUDE_API_KEY GitHub Secret | ⏳ Локально | Settings → Secrets |
+| 21 | Laguna XS-2.1 expires 28.07 | ⚠️ Срочно! | обновить POOLSIDE_API_KEY до 28.07 |
 
 **Не трогать без команды:**
 - CHATTER_DISABLED на Aeza (91.186.216.97)
