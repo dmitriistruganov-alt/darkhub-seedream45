@@ -364,6 +364,28 @@ QDRANT_URL=http://localhost:6333
 
 ---
 
+## Brain Server v2 — 26 роутов (обновлено 24.07.2026)
+
+**Файл:** `darkhub-seedream45/fixes/brain_server_v2.py`
+**Порт:** 9999 · PM2: `brain-мост`
+**Деплой:** `.\fixes\deploy.ps1`
+
+| Категория | Роуты |
+|----------|-------|
+| LLM | free_brain, grok, gemini, pollinations, cloudflare |
+| Мульти | orchestrate (N моделей), pipeline (цепочка) |
+| Код | code_review, codegraph, opencode, codex |
+| Прокси | hermes (:8642), flowise (:3003) |
+| Память | memory_save, memory_search, wiki_add, wiki_query |
+| Граф | cognee_add, cognee_search, memgraph_search, hy3 |
+| ⛔ OFF | temporal_add, temporal_search (перегрев CPU) |
+| Система | obsidian_search, agent_office, status |
+
+**Circuit Breaker:** модели возвращающие 404/429/503 → чёрный список 30 мин → авто-обход.
+**Новый пул (без qwen3):** nvidia nemotron ultra/super, poolside laguna, gemma-4, gpt-oss-20b, groq-llama, poolside-direct.
+
+---
+
 ## Порты (все в Zen Browser)
 
 | Сервис | Порт | Описание |
@@ -375,6 +397,11 @@ QDRANT_URL=http://localhost:6333
 | Langfuse | :3001 | Промпт трекинг |
 | Qdrant | :6333 | Векторная БД |
 | Redis | :6379 | Очереди |
+| brain-мост | :9999 | 26 роутов LLM+память+код |
+| Hermes | :8642 | Kanban / task manager |
+| command-center | :8770 | Control panel |
+| token-compressor | :9988 | Token budget |
+| Flowise | :3003 | Visual AI flows |
 | Helicone | прокси | Мониторинг токенов |
 | herdr | терминал | Агент-мультиплексор |
 

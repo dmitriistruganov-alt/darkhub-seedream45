@@ -174,10 +174,20 @@ systemctl restart sasha-chatter.service
 - slack/buzz MCP
 - и другие 10+
 
-**Мосты brain-мост :9999 (15 роутов):**
+**Мосты brain-мост :9999 (26 роутов):**
 ```
-agent_office · codex · hermes · free_brain · grok · gemini
-flowise · pollinations · cloudflare · hy3 · ...
+free_brain · grok · gemini · pollinations · cloudflare
+orchestrate · pipeline · code_review · codegraph · opencode · codex
+hermes · flowise
+memory_save · memory_search · wiki_add · wiki_query
+cognee_add · cognee_search · temporal_add⛔ · temporal_search⛔
+memgraph_search · hy3 · obsidian_search · agent_office · status
+```
+
+**Деплой brain_server_v2 (если brain-мост упал):**
+```powershell
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\deploy.ps1
 ```
 
 ---

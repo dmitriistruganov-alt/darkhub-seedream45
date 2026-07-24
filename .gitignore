@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+.env/
+
+# Environment / Secrets — NEVER commit these
+.env
+.env.*
+*.env
+agent_office/.env
+!.env.example
+
+# Logs
+*.log
+logs/
+pm2_logs/
+
+# ComfyUI artifacts
+output/
+input/
+models/
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backups created by fix scripts
+*.bak_*
+*.DEAD_*
+
+# Temp
+tmp/
+temp/
+*.tmp

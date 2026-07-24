@@ -222,12 +222,32 @@ class DarkHubFreepikStudio:
 
         # Route to OpenAI-compatible API if base URL is provided
         if openai_api_base.strip():
-            oai_key = api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
+            base = openai_api_base.strip()
+            # Auto-select API key based on provider URL
+            if api_key.strip():
+                oai_key = api_key.strip()
+            elif "poolside" in base:
+                oai_key = os.environ.get("POOLSIDE_API_KEY", "")
+            elif "openrouter" in base:
+                oai_key = os.environ.get("OPENROUTER_API_KEY", "")
+            elif "groq" in base:
+                oai_key = os.environ.get("GROQ_API_KEY", "")
+            elif "fal.run" in base or "fal.ai" in base:
+                oai_key = os.environ.get("FAL_KEY", "")
+            elif "together" in base:
+                oai_key = os.environ.get("TOGETHER_API_KEY", "")
+            elif "x.ai" in base:
+                oai_key = os.environ.get("XAI_API_KEY", "")
+            elif "anthropic" in base:
+                oai_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            else:
+                oai_key = os.environ.get("OPENAI_API_KEY", "")
+
             oai_model = openai_model.strip() or "dall-e-3"
             oai_style = openai_style if openai_style != "(none)" else ""
             try:
                 tensors, urls, resp = _generate_openai(
-                    base_url=openai_api_base.strip(),
+                    base_url=base,
                     api_key=oai_key,
                     model_name=oai_model,
                     prompt=prompt,
@@ -247,7 +267,11 @@ class DarkHubFreepikStudio:
                 return (blank, "openai", "no_images", "[]", "[]", json.dumps(resp), "", "No images returned")
 
             out = torch.cat(tensors, dim=0)
-            summary = f"Generated {len(tensors)} image(s) via {oai_model} [{OPENAI_SIZE_MAP.get(aspect_ratio, '1024x1024')}]"
+            if "gpt-image-1" in oai_model:
+                size_str = GPT_IMAGE_1_SIZES.get(aspect_ratio, "1024x1024")
+            else:
+                size_str = OPENAI_SIZE_MAP.get(aspect_ratio, "1024x1024")
+            summary = f"Generated {len(tensors)} image(s) via {oai_model} [{size_str}]"
             log.info(f"[darkHUB] OpenAI done: {len(tensors)} images")
             return (out, "openai", "COMPLETED", json.dumps(urls), json.dumps(urls),
                     json.dumps(resp), "", summary)

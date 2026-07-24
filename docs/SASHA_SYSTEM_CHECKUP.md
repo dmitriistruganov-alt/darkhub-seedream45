@@ -1,15 +1,25 @@
 # SASHA SYSTEM CHECKUP
-# Снимок системы: 2026-07-22 22:30 | Восстановление: 2026-07-23
+# Снимок системы: 2026-07-22 22:30 | Обновлено: 2026-07-24
 
 Источник: Claude App 2 (локальная сессия на машине Димы).
 Этот файл — точная копия состояния всех систем Agent Office.
 
 ---
 
-## ИТОГ: СИСТЕМА ЗДОРОВА ✅
+## ИТОГ: СИСТЕМА ЗДОРОВА ✅ (с исправлениями 24.07)
 
 Целевое состояние: **22.07.2026 22:30** — достигнуто.
 CPU: **34%** (лимит <70%) ✅
+
+**Исправления 24.07.2026:**
+- ✅ brain_server_v2.py — 26 роутов (заменяет мёртвый brain_server.py)
+- ✅ qwen/qwen3-235b-a22b:free удалён из пулов (стал платным)
+- ✅ Обновлён FREE_POOL: nvidia nemotron / poolside / gemma / gpt-oss
+- ✅ OpenRouter + Groq + Poolside Direct в пуле
+- ✅ node.py: умный выбор API ключа по провайдеру, gpt-image-1 фикс
+- ✅ health_monitor.py — авто-мониторинг и рестарт PM2 процессов
+- ✅ telegram_bot.py — управление с телефона
+- ✅ openrouter_sync.py — авто-обновление моделей
 
 ---
 
@@ -17,9 +27,11 @@ CPU: **34%** (лимит <70%) ✅
 
 | Параметр | Значение |
 |----------|---------|
-| Репо | `dmitriistruganov-alt/agent-office-backup` |
-| Ветка | `audit/full-digital-human` |
-| HEAD коммит | `f04ba6b auto-backup 2026-07-22 22:30` |
+| Репо основной | `dmitriistruganov-alt/agent-office-backup` |
+| Ветка основная | `audit/full-digital-human` |
+| HEAD | `f04ba6b auto-backup 2026-07-22 22:30` |
+| Репо darkHUB | `dmitriistruganov-alt/darkhub-seedream45` |
+| Ветка darkHUB | `claude/codex-openai-api-models-x11l8d` |
 | Неотправленных | 0 |
 | Облако | ✅ в синхроне |
 
@@ -53,11 +65,12 @@ venv/
 ```
 CHATTER_DISABLED = PRESENT
 ```
-Бот молчит по дизайну. НЕ снимать без команды Димы.
+Бот молчит по дизайну. **НЕ снимать без команды Димы.**
 
-### LLM движки
-- **Чаттер**: Grok (xai)
-- **free_brain**: Groq / Cerebras (работают только с Aeza IP)
+### LLM движки (Aeza)
+- **Чаттер**: Grok (xai) — только с Aeza IP
+- **free_brain**: Groq / Cerebras — только с Aeza IP
+- **ЗАМЕНА**: После деплоя brain_server_v2 — OpenRouter free pool (10 моделей)
 
 ---
 
@@ -65,12 +78,13 @@ CHATTER_DISABLED = PRESENT
 
 ### PM2 процессы: 22/22 online ✅
 
-| Процесс | Статус до | Статус после |
-|---------|-----------|-------------|
-| daily-monitor | stopped ❌ | online ✅ |
-| free-llm-sync | stopped ❌ | online ✅ |
-| git-backup (30 мин цикл) | stopped ❌ | online ✅ |
-| Остальные 19 | online ✅ | online ✅ |
+| Процесс | Статус до | Статус после | Примечание |
+|---------|-----------|-------------|-----------|
+| daily-monitor | stopped ❌ | online ✅ | — |
+| free-llm-sync | stopped ❌ | online ✅ | Нужно обновить модели |
+| git-backup (30 мин цикл) | stopped ❌ | online ✅ | Критично! |
+| brain-мост | dead (brain_server.py.DEAD) | — | Деплой brain_server_v2! |
+| Остальные 19 | online ✅ | online ✅ | — |
 
 ### Открытые порты
 
@@ -78,11 +92,11 @@ CHATTER_DISABLED = PRESENT
 |--------|------|--------|
 | Qdrant | 6333 | ✅ OPEN |
 | Ollama | 11434 | ✅ OPEN |
-| brain-мост | 9999 | ✅ OPEN |
+| brain-мост | 9999 | ⚠️ НУЖЕН ДЕПЛОЙ brain_server_v2.py |
 | token-compressor | 9988 | ✅ OPEN |
 | Hermes | 8642 | ✅ OPEN |
 | command-center | 8770 | ✅ OPEN |
-| AdsPower API | 50325 | ⚠️ ждёт GUI-логин (IG/Threads VDS) |
+| AdsPower API | 50325 | ⚠️ ждёт GUI-логин |
 
 ### Ollama
 - Статус: ✅ запущен
@@ -108,12 +122,32 @@ CHATTER_DISABLED = PRESENT
 
 ---
 
-## БЛОК 5 — Brain-мост (:9999)
+## БЛОК 5 — Brain-мост (:9999) — ОБНОВЛЕНО 24.07
 
-**15 роутов:**
+**26 роутов (было 15):**
+
+| Категория | Роуты |
+|----------|-------|
+| LLM | free_brain, grok, gemini, pollinations, cloudflare |
+| Мульти | orchestrate, pipeline |
+| Код | code_review, codegraph, opencode, codex |
+| Прокси | hermes, flowise |
+| Память | memory_save, memory_search, wiki_add, wiki_query |
+| Cognee | cognee_add, cognee_search |
+| Temporal | temporal_add ⛔, temporal_search ⛔ (отключены) |
+| Граф | memgraph_search, hy3 |
+| Система | obsidian_search, agent_office, status |
+
+**Деплой:**
+```powershell
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\deploy.ps1
 ```
-agent_office · codex · hermes · free_brain · grok · gemini
-flowise · pollinations · cloudflare · hy3 · ...
+
+**Тест после деплоя:**
+```powershell
+curl http://localhost:9999/
+curl -X POST http://localhost:9999/free_brain -d '{"prompt":"hello"}'
 ```
 
 ---
@@ -130,18 +164,20 @@ flowise · pollinations · cloudflare · hy3 · ...
 | 6 | agent_office JSON | ✅ | — |
 | 7 | MCP | ✅ | 18 серверов |
 
-**Примечание:** mythos — устарел, не восстанавливать.
-
-### Obsidian
-- Путь: `obsidian_vault/` (в .gitignore — не в git)
-- Сессионный отчёт: `Сессии/2026-07-22-Восстановление-полное.md`
-- 1373 основных заметок + отдельный раздел Fans (1296)
-
 ---
 
-## БЛОК 7 — MCP серверы (18 шт)
+## БЛОК 7 — Telegram Bot (НОВОЕ 24.07)
 
-Все 18 серверов MCP подключены и работают (список в agent_office JSON на машине).
+```
+Файл: fixes/telegram_bot.py
+PM2:  pm2 start fixes/telegram_bot.py --name tg-agent-bot --interpreter python
+Переменные:
+  TELEGRAM_BOT_TOKEN = (от @BotFather)
+  TELEGRAM_ALLOWED_IDS = ваш Telegram ID
+
+Команды:
+  /status, /brain <вопрос>, /dead, /revive, /code, /pipeline, /pm2
+```
 
 ---
 
@@ -155,6 +191,27 @@ flowise · pollinations · cloudflare · hy3 · ...
 
 ---
 
+## БЛОК 9 — Mодели LLM (обновлено 24.07)
+
+**Удалены (стали платными):**
+- ~~qwen/qwen3-235b-a22b:free~~ → платная с 22.07.2026
+
+**Актуальный пул (FREE_POOL в brain_server_v2.py):**
+| Модель | Провайдер | Ключ |
+|--------|-----------|------|
+| nvidia/nemotron-3-ultra-550b-a55b:free | OpenRouter | OPENROUTER_API_KEY |
+| nvidia/nemotron-3-super-120b-a12b:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-s-2.1:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-xs-2.1:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-m.1:free | OpenRouter | OPENROUTER_API_KEY |
+| google/gemma-4-31b-it:free | OpenRouter | OPENROUTER_API_KEY |
+| google/gemma-4-26b-a4b-it:free | OpenRouter | OPENROUTER_API_KEY |
+| openai/gpt-oss-20b:free | OpenRouter | OPENROUTER_API_KEY |
+| meta-llama/llama-3.3-70b-versatile | Groq | GROQ_API_KEY |
+| poolside/laguna-s-2.1 | Poolside Direct | POOLSIDE_API_KEY |
+
+---
+
 ## НЕ-БЛОКЕРЫ (не восстанавливать программно)
 
 | Проблема | Тип | Действие |
@@ -162,6 +219,7 @@ flowise · pollinations · cloudflare · hy3 · ...
 | Железо-перегрев | Физика (кулеры/термопаста/БП) | Руками |
 | AdsPower :50325 | Ждёт GUI-логин | Открыть AdsPower вручную |
 | CHATTER_DISABLED | Дизайн | Снимать только по команде |
+| Temporal контейнер | Отключён намеренно | НЕ запускать |
 
 ---
 
@@ -170,20 +228,38 @@ flowise · pollinations · cloudflare · hy3 · ...
 | Репо | Ветка | Назначение |
 |------|-------|-----------|
 | `agent-office-backup` | `audit/full-digital-human` | Главная система |
-| `darkhub-seedream45` | `claude/codex-openai-api-models-x11l8d` | ComfyUI darkHUB нод |
+| `darkhub-seedream45` | `claude/codex-openai-api-models-x11l8d` | ComfyUI darkHUB нод + fixes |
 | `runpod-gpu-watcher-v2` | main | GPU мониторинг |
 | `flux-stack` | main | FLUX модели |
 | `sashamoon` | main | — |
 
 ---
 
-## Как читать этот файл в следующей сессии
+## Деплой всех исправлений (24.07.2026)
 
-1. Открой сессию с `agent-office-backup` (ветка `audit/full-digital-human`)
-2. Этот файл лежит в `docs/SASHA_SYSTEM_CHECKUP.md` репо `darkhub-seedream45`
-3. Полный отчёт в Obsidian: `Сессии/2026-07-22-Восстановление-полное.md`
-4. Claude Memory: `recovery-verified-jul22.md`
+```powershell
+# Шаг 1: Синхронизировать репо
+git pull origin claude/codex-openai-api-models-x11l8d
+
+# Шаг 2: Починить Claude Code если падает на qwen3
+.\fixes\fix_claude_settings.ps1
+
+# Шаг 3: Деплой brain_server_v2 + обновление моделей
+.\fixes\deploy.ps1
+
+# Шаг 4: Запустить health monitor
+pm2 start fixes/health_monitor.py --name health-monitor --interpreter python
+
+# Шаг 5: Запустить Telegram бот (нужен TELEGRAM_BOT_TOKEN в .env)
+pm2 start fixes/telegram_bot.py --name tg-agent-bot --interpreter python
+
+# Шаг 6: Проверить модели
+python fixes/openrouter_sync.py --dry-run
+
+# Шаг 7: Сохранить PM2 конфиг
+pm2 save
+```
 
 ---
 
-*Составлено: 2026-07-23 | Claude App 2 (локальная) + Claude Code (облако)*
+*Составлено: 2026-07-23 | Обновлено: 2026-07-24 | Claude Cloud + Claude Code*
