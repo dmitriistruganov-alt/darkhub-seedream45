@@ -10,7 +10,17 @@ function ERR($t)  { Write-Host "  ❌ $t" -ForegroundColor Red }
 function INFO($t) { Write-Host "     $t" -ForegroundColor Gray }
 function SEC($t)  { Write-Host "`n══ $t ══" -ForegroundColor Cyan }
 
-$REPLACEMENT_MODEL = "claude-sonnet-5-20251001"
+# Выбрать замену: если ANTHROPIC_BASE_URL = OpenRouter → бесплатная OR-модель
+#                 иначе → прямой Anthropic
+$_baseUrl = $env:ANTHROPIC_BASE_URL
+if (-not $_baseUrl) {
+    $_baseUrl = [System.Environment]::GetEnvironmentVariable("ANTHROPIC_BASE_URL", "User")
+}
+$REPLACEMENT_MODEL = if ($_baseUrl -match "openrouter") {
+    "nvidia/nemotron-3-ultra-550b-a55b:free"   # бесплатная через OpenRouter
+} else {
+    "claude-sonnet-5"                            # прямой Anthropic API
+}
 $BACKUP_SUFFIX     = "_bak_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 
 # Все возможные места где Claude Code хранит конфиги

@@ -18,7 +18,30 @@ PM2: pm2 start fixes/telegram_bot.py --name tg-agent-bot --interpreter python
   /help      — список команд
 """
 import os, sys, json, time, logging, threading, requests
-from urllib.parse import urljoin
+from pathlib import Path
+
+# Load .env from multiple locations (agent_office/.env, VPS, etc.)
+_HERE = Path(__file__).resolve().parent
+for _env in [
+    Path.home() / "agent_office" / ".env",
+    Path("/opt/sasha-core/.env"),
+    _HERE.parent / ".env",
+    _HERE / ".env",
+    Path(".env"),
+]:
+    if _env.exists():
+        try:
+            from dotenv import load_dotenv as _ld; _ld(str(_env))
+        except ImportError:
+            # Manual fallback if python-dotenv not installed
+            with open(_env, encoding="utf-8", errors="ignore") as _f:
+                for _line in _f:
+                    _line = _line.strip()
+                    if _line and not _line.startswith("#") and "=" in _line:
+                        _k, _, _v = _line.partition("=")
+                        if _k.strip() and _k.strip() not in os.environ:
+                            os.environ[_k.strip()] = _v.strip().strip('"').strip("'")
+        break
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [tg] %(message)s')
 log = logging.getLogger("tg_bot")

@@ -108,7 +108,7 @@ docker start postiz postgres redis sasha-postgres
 ```
 6333  - Qdrant
 11434 - Ollama
-9999  - brain-мост (15 роутов)
+9999  - brain-мост (26 роутов, brain_server_v2.py)
 9988  - token-compressor
 8642  - Hermes
 8770  - command-center
@@ -184,7 +184,13 @@ cognee_add · cognee_search · temporal_add⛔ · temporal_search⛔
 memgraph_search · hy3 · obsidian_search · agent_office · status
 ```
 
-**Деплой brain_server_v2 (если brain-мост упал):**
+**Деплой всего (один скрипт):**
+```powershell
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\one_click_fix.ps1
+```
+
+**Только brain_server_v2 если мост упал:**
 ```powershell
 git pull origin claude/codex-openai-api-models-x11l8d
 .\fixes\deploy.ps1
