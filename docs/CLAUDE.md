@@ -204,20 +204,65 @@ BRAIN_PORT=9999
 
 ---
 
+## Утилиты fixes/ (полный список, 24.07.2026)
+
+| Файл | Назначение | Запуск |
+|------|-----------|--------|
+| `deploy.ps1` | Полный деплой (11 шагов) | `.\fixes\deploy.ps1` |
+| `pm2_resurrect.ps1` | Поднять все PM2 процессы | `.\fixes\pm2_resurrect.ps1` |
+| `full_status.ps1` | Полная проверка системы | `.\fixes\full_status.ps1` |
+| `fix_claude_settings.ps1` | Убрать qwen3 из Claude Code | `.\fixes\fix_claude_settings.ps1` |
+| `brain_server_v2.py` | Главный LLM-роутер 26 роутов | PM2 brain-мост |
+| `circuit_breaker.py` | Thread-safe circuit breaker | import в brain_server |
+| `health_monitor.py` | Авто-мониторинг сервисов | PM2 health-monitor |
+| `telegram_bot.py` | Telegram-управление | PM2 tg-agent-bot |
+| `openrouter_sync.py` | Обновить FREE_POOL | `python fixes/openrouter_sync.py --dry-run` |
+| `update_models.py` | Удалить qwen3, патч конфигов | `python fixes/update_models.py` |
+| `env_check.py` | Проверка всех API ключей | `python fixes/env_check.py` |
+| `mcp_server.py` | MCP-сервер для Claude Desktop | Claude config → mcpServers |
+| `test_brain.py` | Smoke-тесты brain_server_v2 | `python fixes/test_brain.py` |
+
+### MCP-сервер в Claude Desktop
+
+Добавить в `%APPDATA%\Claude\claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "brain": {
+      "command": "python",
+      "args": ["C:/Users/18186/agent_office/fixes/mcp_server.py"],
+      "env": {"BRAIN_PORT": "9999"}
+    }
+  }
+}
+```
+
+Инструменты MCP: `brain_free`, `brain_code`, `brain_code_review`, `brain_pipeline`,
+`brain_memory_save`, `brain_memory_search`, `brain_status`, `brain_grok`,
+`brain_gemini`, `brain_obsidian_search`, `brain_hy3_search`
+
+---
+
 ## Задачи (статус 24.07.2026)
 
 | # | Задача | Статус | Действие |
 |---|--------|--------|---------|
-| 1 | brain_server_v2.py — 26 роутов | ✅ Написан | `.\fixes\deploy.ps1` |
-| 2 | circuit_breaker.py модуль | ✅ Написан | скопировать в `agent_office/core/` |
-| 3 | update_models.py — удалить qwen3 | ✅ Написан | `python fixes/update_models.py` |
-| 4 | deploy.ps1 одна команда деплоя | ✅ Написан | `.\fixes\deploy.ps1` |
-| 5 | fix_claude_settings.ps1 | ✅ Написан | `.\fixes\fix_claude_settings.ps1` |
-| 6 | Починить git-backup PM2 | ⏳ Локально | `pm2 restart git-backup && pm2 save` |
-| 7 | OpenHuman inference_url проверить | ⏳ Локально | `AppData\Local\OpenHuman\config.toml` |
-| 8 | CLAUDE_API_KEY секрет для GitHub | ⏳ Локально | Settings → Secrets → CLAUDE_API_KEY |
-| 9 | Laguna XS-2.1 добавить до 28.07 | ✅ В brain_server_v2 | уже в CODING_POOL |
-| 10 | Telegram bot MCP | ⏳ Будущее | `mcp-telegram` пакет |
+| 1 | brain_server_v2.py — 26 роутов | ✅ Готово | `.\fixes\deploy.ps1` |
+| 2 | circuit_breaker.py модуль | ✅ Готово | авто в deploy.ps1 |
+| 3 | update_models.py — удалить qwen3 | ✅ Готово | авто в deploy.ps1 |
+| 4 | deploy.ps1 — 11 шагов | ✅ Готово | `.\fixes\deploy.ps1` |
+| 5 | fix_claude_settings.ps1 | ✅ Готово | `.\fixes\fix_claude_settings.ps1` |
+| 6 | health_monitor.py | ✅ Готово | авто в deploy.ps1 |
+| 7 | telegram_bot.py | ✅ Готово | авто в deploy.ps1 |
+| 8 | openrouter_sync.py | ✅ Готово | авто dry-run в deploy.ps1 |
+| 9 | env_check.py | ✅ Готово | `python fixes/env_check.py` |
+| 10 | mcp_server.py | ✅ Готово | Claude Desktop config |
+| 11 | full_status.ps1 | ✅ Готово | `.\fixes\full_status.ps1` |
+| 12 | pm2_resurrect.ps1 | ✅ Готово | `.\fixes\pm2_resurrect.ps1` |
+| 13 | Починить git-backup PM2 | ⏳ Локально | `pm2 restart git-backup && pm2 save` |
+| 14 | OpenHuman inference_url | ⏳ Локально | `AppData\Local\OpenHuman\config.toml` |
+| 15 | CLAUDE_API_KEY GitHub Secret | ⏳ Локально | Settings → Secrets |
+| 16 | Laguna XS-2.1 expires 28.07 | ⚠️ Срочно! | обновить POOLSIDE_API_KEY до 28.07 |
 
 **Не трогать без команды:**
 - CHATTER_DISABLED на Aeza (91.186.216.97)
