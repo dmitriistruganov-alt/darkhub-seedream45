@@ -68,8 +68,9 @@ foreach ($port in @(3456, 3457, 3458)) {
             $pid_ = $Matches[1]
             if ($pid_ -and $pid_ -ne "0") {
                 $proc = Get-Process -Id $pid_ -ErrorAction SilentlyContinue
+                $procName = if ($proc) { $proc.ProcessName } else { "?" }
                 Stop-Process -Id $pid_ -Force -ErrorAction SilentlyContinue
-                OK "Убит процесс PID $pid_ ($($proc.ProcessName ?? '?')) на порту :$port"
+                OK "Убит процесс PID $pid_ ($procName) на порту :$port"
             }
         }
     }

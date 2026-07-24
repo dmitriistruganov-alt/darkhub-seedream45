@@ -18,9 +18,9 @@ $currentMachine = [System.Environment]::GetEnvironmentVariable("ANTHROPIC_BASE_U
 $currentProcess = $env:ANTHROPIC_BASE_URL
 
 Write-Host "Текущий ANTHROPIC_BASE_URL:" -ForegroundColor Yellow
-Write-Host "  User scope:    $($current    ?? '(не задан)')"
-Write-Host "  Machine scope: $($currentMachine ?? '(не задан)')"
-Write-Host "  Process:       $($currentProcess ?? '(не задан)')"
+Write-Host "  User scope:    $(if ($current) { $current } else { '(не задан)' })"
+Write-Host "  Machine scope: $(if ($currentMachine) { $currentMachine } else { '(не задан)' })"
+Write-Host "  Process:       $(if ($currentProcess) { $currentProcess } else { '(не задан)' })"
 
 # 2. Убрать из всех уровней
 if ($current) {

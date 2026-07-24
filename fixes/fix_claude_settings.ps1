@@ -50,13 +50,13 @@ try {
 
 # Текущее состояние
 $currentModel  = $json.model
-$currentApiUrl = $json.apiUrl ?? $json.customApiUrl ?? $json.baseUrl ?? $json.anthropicBaseUrl
+$currentApiUrl = if ($json.apiUrl) { $json.apiUrl } elseif ($json.customApiUrl) { $json.customApiUrl } elseif ($json.baseUrl) { $json.baseUrl } else { $json.anthropicBaseUrl }
 $hasQwen       = $content -match "qwen"
 $hasOpenRouter = ($currentApiUrl -match "openrouter") -or ($env:ANTHROPIC_BASE_URL -match "openrouter")
 
-INFO "Текущая модель:  $($currentModel ?? '(не задана)')"
-INFO "API URL:         $($currentApiUrl ?? '(не задан)')"
-INFO "ANTHROPIC_BASE_URL: $($env:ANTHROPIC_BASE_URL ?? '(не задана)')"
+INFO "Текущая модель:  $(if ($currentModel) { $currentModel } else { '(не задана)' })"
+INFO "API URL:         $(if ($currentApiUrl) { $currentApiUrl } else { '(не задан)' })"
+INFO "ANTHROPIC_BASE_URL: $(if ($env:ANTHROPIC_BASE_URL) { $env:ANTHROPIC_BASE_URL } else { '(не задана)' })"
 INFO "Содержит qwen:   $hasQwen"
 INFO "Провайдер:       $(if ($hasOpenRouter) { 'OpenRouter' } else { 'Anthropic Direct / Неизвестен' })"
 

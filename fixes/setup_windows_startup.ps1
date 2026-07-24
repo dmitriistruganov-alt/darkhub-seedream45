@@ -28,7 +28,7 @@ $AO = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 LOG "Root:          $Root"
-LOG "agent_office:  $($AO ?? 'NOT FOUND')"
+LOG "agent_office:  $(if ($AO) { $AO } else { 'NOT FOUND' })"
 LOG "DryRun:        $DryRun"
 LOG ""
 
