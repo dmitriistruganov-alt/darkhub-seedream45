@@ -9,12 +9,26 @@ import os, sys, time, json, logging, subprocess, requests
 from datetime import datetime
 from pathlib import Path
 
+_HERE = Path(__file__).resolve().parent
+for _env in [
+    _HERE.parent / ".env",
+    Path.home() / "agent_office" / ".env",
+    Path("/opt/sasha-core/.env"),
+]:
+    if _env.exists():
+        try:
+            from dotenv import load_dotenv as _ld; _ld(str(_env))
+        except ImportError:
+            pass
+        break
+
+_log_path = _HERE.parent / "health_monitor.log"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [health] %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(Path(__file__).parent.parent / "health_monitor.log", encoding="utf-8"),
+        logging.FileHandler(_log_path, encoding="utf-8"),
     ]
 )
 log = logging.getLogger("health_monitor")
