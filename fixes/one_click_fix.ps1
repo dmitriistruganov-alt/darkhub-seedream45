@@ -42,32 +42,20 @@ if (-not $DryRun) {
 } else { WARN "DryRun — пропускаем git pull" }
 
 # ─── БЛОК 2: CLAUDE CODE ───────────────────────────────────────────────────────
-HEADER "БЛОК 2: Починить Claude Code + CCR порт"
-LOG "Исправляем порт claude-code-router (ccr) ..."
-if (-not $DryRun) {
-    & "$Fixes\fix_ccr_port.ps1"
-    $steps_ok += "CCR port fix"
-} else { WARN "DryRun — пропускаем fix_ccr_port" }
+HEADER "БЛОК 2: Починить Claude Code (прямой claude.ai логин)"
 
-LOG "Запускаем fix_claude_settings.ps1 ..."
+# ROOT CAUSE FIX: убрать apiKeyHelper + ANTHROPIC_BASE_URL чтобы работал браузерный логин
+LOG "Root-cause fix: убираем apiKeyHelper и ANTHROPIC_BASE_URL из settings.json ..."
+if (-not $DryRun) {
+    & "$Fixes\fix_direct_claude_login.ps1"
+    $steps_ok += "direct claude.ai login fix"
+} else { WARN "DryRun — пропускаем fix_direct_claude_login" }
+
+LOG "Дополнительно: fix_claude_settings.ps1 ..."
 if (-not $DryRun) {
     & "$Fixes\fix_claude_settings.ps1"
     $steps_ok += "Claude Code settings"
 } else { WARN "DryRun — пропускаем fix_claude_settings" }
-
-LOG "Очищаем ANTHROPIC_BASE_URL если она ведёт в OpenRouter ..."
-if (-not $DryRun) {
-    $baseUrl = $env:ANTHROPIC_BASE_URL
-    if ($baseUrl -match "openrouter") {
-        [System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", $null, "User")
-        $env:ANTHROPIC_BASE_URL = $null
-        OK "ANTHROPIC_BASE_URL убрана (была OpenRouter URL)"
-    } elseif ($baseUrl) {
-        WARN "ANTHROPIC_BASE_URL = $baseUrl (не менялась — не openrouter)"
-    } else {
-        OK "ANTHROPIC_BASE_URL не задана (норма для прямого Anthropic API)"
-    }
-}
 
 # ─── БЛОК 3: ДЕПЛОЙ BRAIN SERVER ──────────────────────────────────────────────
 if (-not $SkipDeploy) {
