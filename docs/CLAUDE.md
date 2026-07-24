@@ -275,7 +275,7 @@ $f="$env:USERPROFILE\.claude\settings.json"; $j=Get-Content $f|ConvertFrom-Json;
 
 **Что делает fix_claude_settings.ps1:**
 1. Если `sk-ant-` ключ → убирает OpenRouter URL, ставит `claude-sonnet-5` напрямую
-2. Если `sk-or-` ключ → ставит `nvidia/nemotron-ultra-550b-a55b:free`
+2. Если `sk-or-` ключ → ставит `nvidia/nemotron-3-ultra-550b-a55b:free`
 3. Если ключей нет → удаляет поле model, просит ввести ключ вручную
 
 ---
