@@ -1,7 +1,5 @@
 # fix_ccr_routes.ps1 — Исправить маршруты claude-code-router
-# Проблема: longContext → kimi-k2 (платная на OpenRouter) → 400
-# recall_hook.py делает все промпты >40k → всё идёт в longContext → падает
-# Решение: longContext → groq (128k, бесплатный)
+# Маршрутизирует ВСЁ через OpenRouter с бесплатными моделями из существующего конфига
 # Запуск: .\fixes\fix_ccr_routes.ps1
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -19,113 +17,102 @@ if (-not (Test-Path $CCR_CONFIG)) {
     exit 1
 }
 
-SEC "ТЕКУЩИЕ МАРШРУТЫ"
+SEC "ИСПРАВЛЕНИЕ МАРШРУТОВ"
 $cfg = Get-Content $CCR_CONFIG -Raw | ConvertFrom-Json
-$r = $cfg.Router
-INFO "default:              $($r.default)"
-INFO "background:           $($r.background)"
-INFO "think:                $($r.think)"
-INFO "longContext:          $($r.longContext)"
-INFO "longContextThreshold: $($r.longContextThreshold)"
-
-SEC "ИСПРАВЛЕНИЕ"
-
 $backup = "$CCR_CONFIG.bak_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 Copy-Item $CCR_CONFIG $backup -Force
 INFO "Backup: $backup"
 
-$changed = $false
-
-# Проверить longContext — kimi-k2 без :free = платная
-if ($r.longContext -match "kimi-k2" -and $r.longContext -notmatch ":free") {
-    $cfg.Router.longContext = "groq,llama-3.3-70b-versatile"
-    OK "longContext: kimi-k2 (платная) → groq,llama-3.3-70b-versatile (128k, бесплатный)"
-    $changed = $true
+# Проверить что openrouter провайдер есть в конфиге
+$orProvider = $cfg.Providers | Where-Object { $_.name -eq "openrouter" }
+if (-not $orProvider) {
+    ERR "openrouter провайдер не найден в config.json!"
+    exit 1
 }
+OK "openrouter провайдер найден (ключ: $($orProvider.api_key.Substring(0,15))...)"
 
-# Проверить longContext — qwen3 (стала платной 22.07)
-if ($r.longContext -match "qwen3-235b-a22b:free") {
-    $cfg.Router.longContext = "groq,llama-3.3-70b-versatile"
-    OK "longContext: qwen3:free (платная) → groq,llama-3.3-70b-versatile"
-    $changed = $true
+# Установить все маршруты на OpenRouter бесплатные модели
+# Используем модели уже прописанные в openrouter.models[] в конфиге
+$cfg.Router.default    = "openrouter,meta-llama/llama-3.3-70b-instruct:free"
+$cfg.Router.background = "openrouter,meta-llama/llama-3.3-70b-instruct:free"
+$cfg.Router.longContext = "openrouter,meta-llama/llama-3.1-405b:free"
+$cfg.Router.think      = "openrouter,deepseek/deepseek-r1:free"
+
+OK "default    → openrouter,meta-llama/llama-3.3-70b-instruct:free"
+OK "background → openrouter,meta-llama/llama-3.3-70b-instruct:free"
+OK "longContext → openrouter,meta-llama/llama-3.1-405b:free  (128k+ ctx)"
+OK "think      → openrouter,deepseek/deepseek-r1:free"
+
+# Убедиться что нужные модели есть в списке openrouter.models
+$neededModels = @(
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "meta-llama/llama-3.1-405b:free",
+    "deepseek/deepseek-r1:free"
+)
+$existingModels = @($orProvider.models)
+$added = @()
+foreach ($m in $neededModels) {
+    if ($existingModels -notcontains $m) {
+        $existingModels += $m
+        $added += $m
+    }
 }
-
-# Если default падает — проверить groq
-# Groq llama-3.3-70b — 128k контекст, стабильный
-if ($r.default -notmatch "groq|cerebras|sambanova") {
-    $cfg.Router.default = "groq,llama-3.3-70b-versatile"
-    OK "default → groq,llama-3.3-70b-versatile"
-    $changed = $true
-}
-
-# Если ничего не менялось но ошибка есть — принудительно обновить
-if (-not $changed) {
-    WARN "Явных проблем в конфиге не найдено — принудительно устанавливаем надёжные маршруты"
-    $cfg.Router.default    = "groq,llama-3.3-70b-versatile"
-    $cfg.Router.background = "cerebras,llama-3.3-70b"
-    $cfg.Router.longContext = "groq,llama-3.3-70b-versatile"
-    $changed = $true
-    OK "default + longContext → groq | background → cerebras"
-}
-
-if ($changed) {
-    $cfg | ConvertTo-Json -Depth 10 | Set-Content $CCR_CONFIG -Encoding UTF8
-    OK "Конфиг сохранён"
-}
-
-SEC "ТЕСТ GROQ"
-$groqProvider = $cfg.Providers | Where-Object { $_.name -eq "groq" }
-if ($groqProvider -and $groqProvider.api_key) {
-    $body = '{"model":"llama-3.3-70b-versatile","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
-    try {
-        $resp = Invoke-RestMethod `
-            -Uri "https://api.groq.com/openai/v1/chat/completions" `
-            -Method POST `
-            -Headers @{Authorization="Bearer $($groqProvider.api_key)"; "Content-Type"="application/json"} `
-            -Body $body `
-            -TimeoutSec 15 `
-            -ErrorAction Stop
-        OK "Groq API работает — ответ: $($resp.choices[0].message.content)"
-    } catch {
-        $errMsg = $_.Exception.Message
-        if ($errMsg -match "401") {
-            ERR "Groq API ключ не действителен (401). Нужен новый ключ с console.groq.com"
-        } elseif ($errMsg -match "429") {
-            WARN "Groq rate limit (429) — попробуй через минуту или смени на cerebras"
-        } else {
-            ERR "Groq ошибка: $errMsg"
-            WARN "Переключаем на cerebras как запасной..."
-            $cfg.Router.default    = "cerebras,llama-3.3-70b"
-            $cfg.Router.longContext = "sambanova,Meta-Llama-3.1-405B-Instruct"
-            $cfg | ConvertTo-Json -Depth 10 | Set-Content $CCR_CONFIG -Encoding UTF8
-            OK "Fallback: default→cerebras, longContext→sambanova"
+if ($added.Count -gt 0) {
+    # Обновить models в провайдере
+    for ($i = 0; $i -lt $cfg.Providers.Count; $i++) {
+        if ($cfg.Providers[$i].name -eq "openrouter") {
+            $cfg.Providers[$i].models = $existingModels
+            break
         }
     }
-} else {
-    WARN "Groq провайдер не найден в конфиге — пропускаем тест"
+    OK "Добавлены в openrouter.models: $($added -join ', ')"
 }
 
-SEC "ПЕРЕЗАПУСК РОУТЕРА"
+$cfg | ConvertTo-Json -Depth 10 | Set-Content $CCR_CONFIG -Encoding UTF8
+OK "Конфиг сохранён"
+
+SEC "ТЕСТ OPENROUTER API"
+$body = '{"model":"meta-llama/llama-3.3-70b-instruct:free","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
+try {
+    $resp = Invoke-RestMethod `
+        -Uri "https://openrouter.ai/api/v1/chat/completions" `
+        -Method POST `
+        -Headers @{
+            Authorization = "Bearer $($orProvider.api_key)"
+            "Content-Type" = "application/json"
+            "HTTP-Referer" = "http://localhost"
+        } `
+        -Body $body `
+        -TimeoutSec 20 `
+        -ErrorAction Stop
+    OK "OpenRouter API работает! Ответ: $($resp.choices[0].message.content)"
+} catch {
+    $msg = $_.Exception.Message
+    if ($msg -match "401") {
+        ERR "OpenRouter ключ не действителен (401)"
+    } elseif ($msg -match "429") {
+        WARN "OpenRouter rate limit (429) — подожди минуту"
+    } elseif ($msg -match "402") {
+        ERR "OpenRouter нет кредитов (402) для этой модели"
+    } else {
+        ERR "OpenRouter ошибка: $msg"
+    }
+}
+
+SEC "ПЕРЕЗАПУСК CCR"
 ccr stop 2>$null
 Start-Sleep -Seconds 2
 ccr start 2>$null
 Start-Sleep -Seconds 3
 
-# Проверить что роутер запустился
-$listening = netstat -ano | Select-String ":345" | Where-Object { $_ -match "LISTENING" }
-if ($listening) {
-    OK "Роутер запущен: $($listening[0].ToString().Trim())"
+$alive = netstat -ano 2>$null | Select-String ":345" | Where-Object { $_ -match "LISTENING" }
+if ($alive) {
+    OK "CCR запущен: $($alive[0].ToString().Trim())"
 } else {
-    ERR "Роутер не слушает ни на одном порту из 345x"
+    ERR "CCR не запустился!"
 }
 
 SEC "ИТОГ"
 Write-Host ""
-Write-Host "  Обновлённые маршруты:" -ForegroundColor Cyan
-$newCfg = Get-Content $CCR_CONFIG -Raw | ConvertFrom-Json
-$newCfg.Router | Format-List
-Write-Host ""
-Write-Host "  Запусти: claude" -ForegroundColor Green
-Write-Host ""
-Write-Host "  Если ошибка повторится — проверь логи: ccr logs" -ForegroundColor Yellow
+Write-Host "  Запускай: claude" -ForegroundColor Green
 Write-Host ""
