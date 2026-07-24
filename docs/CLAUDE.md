@@ -55,7 +55,7 @@
 
 | Репо | Назначение |
 |------|-----------|
-| `agent-office` | Главная архитектура (этот файл) |
+| `agent-office` | Главная архитектура |
 | `darkhub-seedream45` | ComfyUI нод для генерации изображений |
 | `runpod-gpu-watcher-v2` | Мониторинг GPU на RunPod |
 | `flux-stack` | FLUX модели |
@@ -63,31 +63,83 @@
 
 ---
 
-## Ключевые инструменты
+## Brain Server v2 (замена мёртвого brain_server.py)
 
-### darkHUB Node (darkhub-seedream45)
+**Файл:** `fixes/brain_server_v2.py`
+**Порт:** 9999 (совместим с прежним)
+**Статус:** ✅ Написан, готов к деплою
+
+### 26 роутов:
+
+| Роут | Описание |
+|------|----------|
+| `free_brain` | Пул 10 бесплатных LLM с circuit breaker |
+| `grok` | xAI Grok API |
+| `gemini` | Google Gemini |
+| `pollinations` | Pollinations.ai (text + image, БЕЗ ключа) |
+| `cloudflare` | Cloudflare Workers AI |
+| `orchestrate` | N моделей параллельно → лучший ответ |
+| `pipeline` | Цепочка промптов (шаги через {prev}) |
+| `code_review` | Авто-ревью кода |
+| `codegraph` | Анализ структуры кода |
+| `opencode` | Coding-optimized пул |
+| `codex` | Code generation |
+| `hermes` | Прокси → localhost:8642 |
+| `flowise` | Прокси → localhost:3003 |
+| `memory_save` | Сохранить в memory.json |
+| `memory_search` | Поиск в memory.json |
+| `wiki_add` | Добавить в wiki (namespace в memory) |
+| `wiki_query` | Поиск в wiki |
+| `cognee_add` | Добавить в Cognee (fallback → memory) |
+| `cognee_search` | Поиск в Cognee (fallback → memory) |
+| `temporal_add` | ОТКЛЮЧЕНО (перегрев) |
+| `temporal_search` | ОТКЛЮЧЕНО (перегрев) |
+| `memgraph_search` | Поиск в Memgraph (fallback → memory) |
+| `obsidian_search` | Поиск в Obsidian vault |
+| `hy3` | Гибридный поиск: Qdrant + memory + Obsidian |
+| `agent_office` | Статус всех 4 сервисов |
+| `status` | Health check всей инфраструктуры |
+
+### Деплой (одна команда):
+```powershell
+git pull origin claude/codex-openai-api-models-x11l8d
+.\fixes\deploy.ps1
+```
+
+---
+
+## Free LLM Pool (обновлено 2026-07-24)
+
+**УДАЛЁН:** `qwen/qwen3-235b-a22b:free` — стала платной ~22.07.2026
+
+| Модель | Провайдер | Ключ |
+|--------|-----------|------|
+| nvidia/nemotron-3-ultra-550b-a55b:free | OpenRouter | OPENROUTER_API_KEY |
+| nvidia/nemotron-3-super-120b-a12b:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-s-2.1:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-xs-2.1:free | OpenRouter | OPENROUTER_API_KEY |
+| poolside/laguna-m.1:free | OpenRouter | OPENROUTER_API_KEY |
+| google/gemma-4-31b-it:free | OpenRouter | OPENROUTER_API_KEY |
+| google/gemma-4-26b-a4b-it:free | OpenRouter | OPENROUTER_API_KEY |
+| openai/gpt-oss-20b:free | OpenRouter | OPENROUTER_API_KEY |
+| meta-llama/llama-3.3-70b-versatile | Groq | GROQ_API_KEY |
+| poolside/laguna-s-2.1 | Poolside Direct | POOLSIDE_API_KEY |
+
+---
+
+## darkHUB Node (darkhub-seedream45)
+
 ComfyUI нод с двумя бэкендами:
 - **kie.ai**: Seedream 4.5 Edit / T2I / 5.0 Lite
 - **OpenAI-совместимый**: любой провайдер через `openai_api_base`
-- Активная ветка: `claude/codex-openai-api-models-x11l8d`
 
-### OpenHands (новое)
-Автономный AI-разработчик, self-hosted Docker.
-- Порт: :3002
-- Модель: claude-sonnet-5
-- Задачи: фикс багов, написание n8n workflows, новые ноды
-- `docker pull ghcr.io/all-hands-ai/openhands:main`
+**Активная ветка:** `claude/codex-openai-api-models-x11l8d`
 
-### Claudexor
-Мульти-агентный оркестратор Claude Code / Codex.
-- Ротация квот, best-of-N, budget caps (`--max-usd 5`)
-- MCP server mode
-- `github.com/razzant/claudexor`
-
-### Buzz (Jack Dorsey / Block)
-Open-source workspace, AI-агенты как члены команды.
-- Протокол Nostr, Apache 2.0, self-hosted
-- Каналы: #content-farm #etsy #amazon #tiktok #dev #alerts #budget
+### Исправления (23-24.07.2026):
+- ✅ Удалён hardcoded demo KIE_API_KEY (`44f4c847...`)
+- ✅ Убран несуществующий `WEB_DIRECTORY = "./js"`
+- ✅ Добавлен OpenAI-compatible бэкенд (`_generate_openai`)
+- ✅ OPENAI_SIZE_MAP, OPENAI_QUALITY, OPENAI_STYLE константы
 
 ---
 
@@ -114,7 +166,12 @@ STABILITY_API_KEY=     # Stability AI
 OPENAI_API_KEY=        # OpenAI
 ANTHROPIC_API_KEY=     # Claude API
 GROQ_API_KEY=          # Groq (промпты, бесплатно)
-POOLSIDE_API_KEY=      # Poolside Laguna S/XS-2.1 — coding модели, БЕСПЛАТНО (добавлен 23.07)
+OPENROUTER_API_KEY=    # OpenRouter (14 ключей в ротации)
+POOLSIDE_API_KEY=      # Poolside Laguna S/XS-2.1 (БЕСПЛАТНО)
+XAI_API_KEY=           # xAI Grok
+GEMINI_API_KEY=        # Google Gemini
+CF_ACCOUNT_ID=         # Cloudflare Workers AI
+CF_API_TOKEN=          # Cloudflare Workers AI
 B2_KEY_ID=             # Backblaze B2
 B2_APP_KEY=
 B2_BUCKET=
@@ -130,40 +187,37 @@ LANGFUSE_PUBLIC_KEY=
 HELICONE_API_KEY=
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
+OBSIDIAN_VAULT=C:\Users\18186\obsidian_vault
+BRAIN_PORT=9999
 # Проверять EXISTS/MISSING — НИКОГДА не печатать значения
 ```
 
 ---
 
-## Важные заметки
+## Важные правила безопасности
 
+- **CPU потолок: 70%.** Перед тяжёлыми операциями — `Get-WmiObject Win32_Processor`
+- **Temporal контейнер: держать ВЫКЛЮЧЕННЫМ** (причина перегрева)
+- **CHATTER_DISABLED.flag на Aeza (91.186.216.97): НЕ трогать** без явной команды Димы
 - Amazon MWS мёртв с 31.03.2024 — только SP-API
-- MidJourney API в 2025 — только enterprise
-- FAL.ai FLUX Schnell — лучшее соотношение скорость/цена ($0.01, <1 сек)
-- Stability AI 3.5 — самый дешёвый ($0.003/img)
-- Ideogram — единственный надёжный для текста на изображении (90-95%)
-- OpenHands порт :3002 (чтобы не конфликтовать с Buzz :3000, Langfuse :3001)
-- Poolside БЕСПЛАТНО: inference.poolside.ai/v1, модели laguna-s-2.1 / laguna-xs-2.1
-- CPU потолок: 70%. Перед тяжёлыми операциями — Get-WmiObject Win32_Processor
-- Temporal контейнер: держать ВЫКЛЮЧЕННЫМ (причина перегрева)
-- CHATTER_DISABLED.flag на Aeza: НЕ трогать без явной команды Димы
+- НИКОГДА не печатать значения API ключей — только проверять EXISTS/MISSING
 
 ---
 
-## Задачи для локального Claude Code (подхвати при следующем запуске)
+## Задачи (статус 24.07.2026)
 
-Статус проверки: 23.07.2026. Система здорова.
-
-| # | Задача | Файл/место | Приоритет |
-|---|--------|-----------|-----------|
-| 1 | Починить git-backup в PM2 (статус stopped → online) | `pm2 resurrect && pm2 save` | 🔴 ВЫСОКИЙ |
-| 2 | Добавить Poolside в free_brain.py (маршрут "coding") | `agent_office/core/free_brain.py` | 🟡 Средний |
-| 3 | Добавить Poolside в ALL_WORKERS пул | `agent_office/core/config.py` | 🟡 Средний |
-| 4 | Проверить OpenHuman после смены inference_url на anthropic | `AppData\Local\OpenHuman\config.toml` | 🟡 Средний |
-| 5 | /reload-plugins в Claude Code или новая сессия для активации claude-security | сессия Claude Code | 🟢 Низкий |
-| 6 | Добавить Laguna XS-2.1 в free_brain (истекает 28.07 — ускорить!) | `free_brain.py` | 🟡 Средний |
-| 7 | Проверить Scheduled Tasks: HealTick/DeepCheck/SashaMemoryFeed/TelegramAgentBot | Task Scheduler | 🟡 Средний |
-| 8 | Obsidian-mind семантический поиск — спросить Диму нужно ли | — | 🟢 Низкий |
+| # | Задача | Статус | Действие |
+|---|--------|--------|---------|
+| 1 | brain_server_v2.py — 26 роутов | ✅ Написан | `.\fixes\deploy.ps1` |
+| 2 | circuit_breaker.py модуль | ✅ Написан | скопировать в `agent_office/core/` |
+| 3 | update_models.py — удалить qwen3 | ✅ Написан | `python fixes/update_models.py` |
+| 4 | deploy.ps1 одна команда деплоя | ✅ Написан | `.\fixes\deploy.ps1` |
+| 5 | fix_claude_settings.ps1 | ✅ Написан | `.\fixes\fix_claude_settings.ps1` |
+| 6 | Починить git-backup PM2 | ⏳ Локально | `pm2 restart git-backup && pm2 save` |
+| 7 | OpenHuman inference_url проверить | ⏳ Локально | `AppData\Local\OpenHuman\config.toml` |
+| 8 | CLAUDE_API_KEY секрет для GitHub | ⏳ Локально | Settings → Secrets → CLAUDE_API_KEY |
+| 9 | Laguna XS-2.1 добавить до 28.07 | ✅ В brain_server_v2 | уже в CODING_POOL |
+| 10 | Telegram bot MCP | ⏳ Будущее | `mcp-telegram` пакет |
 
 **Не трогать без команды:**
 - CHATTER_DISABLED на Aeza (91.186.216.97)

@@ -54,8 +54,32 @@ MODEL_MAP = {
 }
 
 # OpenAI-compatible quality options
-OPENAI_QUALITY = ["auto", "standard", "hd"]
+OPENAI_QUALITY = ["auto", "standard", "hd", "low", "medium", "high"]
 OPENAI_STYLE = ["vivid", "natural"]
+
+# gpt-image-1 uses different size tokens (not WxH strings)
+GPT_IMAGE_1_SIZES = {
+    "Square: 1:1":        "1024x1024",
+    "Widescreen: 16:9":   "1536x1024",
+    "Portrait: 2:3":      "1024x1536",
+    "Landscape: 3:2":     "1536x1024",
+    "Tall: 9:16":         "1024x1536",
+    "Traditional: 3:4":   "1024x1024",
+    "Classic: 4:3":       "1536x1024",
+    "Ultra Wide: 21:9":   "1536x1024",
+}
+
+# Preset OpenAI-compatible base URLs for quick selection (used as documentation)
+OPENAI_PRESET_URLS = {
+    "openai":    "https://api.openai.com",
+    "fal":       "https://fal.run",
+    "together":  "https://api.together.xyz",
+    "replicate": "https://api.replicate.com",
+    "ollama":    "http://localhost:11434",
+    "poolside":  "https://inference.poolside.ai/v1",
+    "openrouter":"https://openrouter.ai/api/v1",
+    "pollinations": "https://image.pollinations.ai",
+}
 
 
 def _tensor_to_b64(tensor: torch.Tensor) -> str:
@@ -88,12 +112,21 @@ def _generate_openai(base_url, api_key, model_name, prompt, aspect_ratio,
                      num_images, quality, style_name, seed):
     """Call any OpenAI-compatible /v1/images/generations endpoint."""
     base_url = base_url.rstrip("/")
-    url = f"{base_url}/v1/images/generations"
+    # Some providers already include /v1 in their base URL
+    if base_url.endswith("/v1"):
+        url = f"{base_url}/images/generations"
+    else:
+        url = f"{base_url}/v1/images/generations"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    size = OPENAI_SIZE_MAP.get(aspect_ratio, "1024x1024")
+    # gpt-image-1 uses specific size tokens; dall-e-2 also has a limited set
+    if "gpt-image-1" in model_name:
+        size = GPT_IMAGE_1_SIZES.get(aspect_ratio, "1024x1024")
+    else:
+        size = OPENAI_SIZE_MAP.get(aspect_ratio, "1024x1024")
+
     body = {
         "model": model_name,
         "prompt": prompt,
@@ -101,9 +134,11 @@ def _generate_openai(base_url, api_key, model_name, prompt, aspect_ratio,
         "size": size,
         "response_format": "b64_json",
     }
-    if quality != "auto":
+    # gpt-image-1 uses quality tokens: low/medium/high (not standard/hd)
+    if quality and quality not in ("auto",):
         body["quality"] = quality
-    if style_name:
+    # dall-e-3 supports style; gpt-image-1 does not
+    if style_name and "gpt-image-1" not in model_name:
         body["style"] = style_name
     if seed:
         body["seed"] = seed
@@ -147,10 +182,17 @@ class DarkHubFreepikStudio:
                 "output_prefix":   ("STRING", {"default": "darkhub_seedream45"}),
                 "api_key":         ("STRING", {"default": ""}),
                 # OpenAI-compatible provider settings (leave empty to use kie.ai)
+                # Presets: openai=https://api.openai.com | fal=https://fal.run
+                #          poolside=https://inference.poolside.ai/v1 (FREE)
+                #          openrouter=https://openrouter.ai/api/v1
+                #          together=https://api.together.xyz
+                #          ollama=http://localhost:11434
                 "openai_api_base": ("STRING", {"default": "", "multiline": False,
                                                "placeholder": "https://api.openai.com  (empty = use kie.ai)"}),
+                # Models: dall-e-3 | gpt-image-1 | fal-ai/flux/schnell | fal-ai/flux-pro
+                #         black-forest-labs/FLUX.1-schnell | stabilityai/stable-diffusion-3-5-large
                 "openai_model":    ("STRING", {"default": "", "multiline": False,
-                                               "placeholder": "dall-e-3 / gpt-image-1 / ..."}),
+                                               "placeholder": "dall-e-3 / gpt-image-1 / fal-ai/flux/schnell"}),
                 "openai_quality":  (OPENAI_QUALITY, {"default": "auto"}),
                 "openai_style":    (["(none)"] + OPENAI_STYLE, {"default": "(none)"}),
             },
