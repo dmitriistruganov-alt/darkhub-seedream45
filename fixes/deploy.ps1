@@ -5,16 +5,26 @@ param([switch]$DryRun)
 
 $ErrorActionPreference = "Stop"
 $Root  = Split-Path -Parent $PSScriptRoot
-$AO    = Join-Path $Root "agent_office"
 $Fixes = $PSScriptRoot
+
+# agent_office может быть рядом с репо ИЛИ внутри него
+$AO_CANDIDATES = @(
+    (Join-Path $env:USERPROFILE "agent_office"),   # C:\Users\18186\agent_office (основное)
+    (Join-Path $Root "agent_office"),              # darkhub-seedream45\agent_office (если перенесли)
+    (Join-Path (Split-Path -Parent $Root) "agent_office")  # сосед на 2 уровня вверх
+)
+$AO = $null
+foreach ($cand in $AO_CANDIDATES) {
+    if (Test-Path $cand) { $AO = $cand; break }
+}
 
 function Log($msg) { Write-Host "[deploy] $msg" -ForegroundColor Cyan }
 function OK($msg)  { Write-Host "  OK  $msg"    -ForegroundColor Green }
 function WARN($msg){ Write-Host "  WARN $msg"   -ForegroundColor Yellow }
 function ERR($msg) { Write-Host "  ERR $msg"    -ForegroundColor Red; exit 1 }
 
-if (-not (Test-Path $AO)) {
-    ERR "agent_office не найден: $AO — запускай из корня репо"
+if (-not $AO) {
+    ERR "agent_office не найден. Проверено: $($AO_CANDIDATES -join ', ')"
 }
 
 Log "Root:   $Root"

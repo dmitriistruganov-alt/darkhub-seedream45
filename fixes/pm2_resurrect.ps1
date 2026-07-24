@@ -6,6 +6,13 @@ param([switch]$Force)
 
 $ErrorActionPreference = "SilentlyContinue"
 $Root = Split-Path -Parent $PSScriptRoot
+# Resolve agent_office path (may be sibling of repo or inside it)
+$AO_CANDIDATES = @(
+    (Join-Path $env:USERPROFILE "agent_office"),
+    (Join-Path $Root "agent_office"),
+    (Join-Path (Split-Path -Parent $Root) "agent_office")
+)
+$AO = ($AO_CANDIDATES | Where-Object { Test-Path $_ } | Select-Object -First 1)
 
 function OK($t)   { Write-Host "  ✅ $t" -ForegroundColor Green }
 function WARN($t) { Write-Host "  ⚠️  $t" -ForegroundColor Yellow }
@@ -40,8 +47,8 @@ foreach ($proc in $critical) {
         if ($proc.script -and $proc.name -eq "brain-мост") {
             WARN "$($proc.name) не найден в PM2"
             if ($Force) {
-                $scriptPath = Join-Path $Root "agent_office\brain_server_v2.py"
-                if (-not (Test-Path $scriptPath)) {
+                $scriptPath = if ($AO) { Join-Path $AO "brain_server_v2.py" } else { "" }
+                if (-not $scriptPath -or -not (Test-Path $scriptPath)) {
                     $scriptPath = Join-Path $Root "fixes\brain_server_v2.py"
                 }
                 if (Test-Path $scriptPath) {
@@ -79,8 +86,8 @@ foreach ($proc in $critical) {
 LOG "Шаг 3: Проверка health-monitor"
 $hmFound = $pm2List | Where-Object { $_.name -eq "health-monitor" }
 if (-not $hmFound) {
-    $hmPath = Join-Path $Root "agent_office\fixes\health_monitor.py"
-    if (-not (Test-Path $hmPath)) { $hmPath = Join-Path $Root "fixes\health_monitor.py" }
+    $hmPath = if ($AO) { Join-Path $AO "fixes\health_monitor.py" } else { "" }
+    if (-not $hmPath -or -not (Test-Path $hmPath)) { $hmPath = Join-Path $Root "fixes\health_monitor.py" }
     if (Test-Path $hmPath) {
         pm2 start $hmPath --name "health-monitor" --interpreter python
         OK "health-monitor запущен"
