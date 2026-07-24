@@ -165,7 +165,7 @@ def route_grok(prompt: str = "", **kw) -> dict:
     key = os.environ.get("XAI_API_KEY", "")
     if not key:
         return {"ok": False, "error": "XAI_API_KEY not set"}
-    model = kw.get("model", "grok-beta")
+    model = kw.get("model", "grok-3")
     try:
         resp = _openai_call("https://api.x.ai/v1", key, model,
                             [{"role": "user", "content": prompt}])
