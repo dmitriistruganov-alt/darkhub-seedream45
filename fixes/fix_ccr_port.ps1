@@ -143,15 +143,14 @@ if ($actualPort -ne $expectedPort) {
 SEC "ТЕСТ РОУТЕРА"
 Start-Sleep -Seconds 2
 try {
-    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$actualPort" -TimeoutSec 5 -ErrorAction Stop
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$actualPort" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
     OK "Router отвечает на :$actualPort — HTTP $($resp.StatusCode)"
 } catch {
-    # Пробуем POST /v1/models (claude-code-router endpoint)
     try {
-        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$actualPort/v1/models" -TimeoutSec 5 -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$actualPort/v1/models" -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
         OK "Router /v1/models на :$actualPort — HTTP $($resp.StatusCode)"
     } catch {
-        WARN "Router не отвечает на :$actualPort (может нормально для этого эндпоинта)"
+        WARN "Router не отвечает HTTP-тесту на :$actualPort (ок — некоторые эндпоинты требуют POST)"
     }
 }
 
